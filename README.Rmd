@@ -1,0 +1,153 @@
+---
+output: github_document
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+## Accessing data on AKFIN
+
+<!-- badges: start -->
+<!-- badges: end -->
+The purpose of this document is to summarize and provide examples of the major ways that AKFIN users can obtain data from AKFIN.
+The AKFIN database is a common source of data for AFSC stock assessment, NPFMC, and many other Alaskan Fisheries needs.
+It is an Oracle database currently housed on a PSMFC server in Portland. 
+AKFIN products pull data from the AKFIN database so regardless of which data access method is used, the same data is received.
+Here are the major ways that AKFIN distributes data.
+  1) AKFIN ANSWERS
+  2) Direct database connection through R or SQL developer.
+  3) Web service (api)
+  4) APEX reporting
+This document will cover methods, strengths, and weaknesses of these data access pathways.
+
+## AKFIN permissions
+In order to be eligible to access confidential data on AKFIN, you must have an NDA on file the the NMFS Alaska regional office (AKR).
+Once your NDA is in place, you can request and AKFIN account here.
+
+Currently each data access method has its own set of credentials. Your AKFIN oracle database account is different from your AKFIN ANSWERS login, and APEX reports and web services require a separate credentials as well. Each access method will be covered in more detail below.
+
+## AKFIN Answers
+[AKFIN Answers](https://akfinbi.psmfc.org/bi-security-login/login.jsp?msi=false&redirect=L2FuYWx5dGljcy9zYXcuZGxsP2JpZWVob21lJnN0YXJ0UGFnZT0xJmhhc2g9Y0MtckpJLUVnQUhzUlBtMDM5TWZBamZxdkctT0oydlhlc0VON0h2azlyeFFOSlZRZkNMTVlHYWRNdXRTcmF1Wg==) is an Oracle BI tool that allows users to browse, filter, and download data using a point and click web interface. 
+Answers does not require any coding and it can be accessed without a VPN connection.
+Answers is not the best method for reproducible science because users must select their filters and download their data as a csv each use. 
+
+![example report on Answers](img/crab dashboard.jpg)
+
+## Direct database connection
+Users can connect to the database and pull data using SQL query. 
+This method requires VPN or NOAA network.
+Queries can be reused, pulling the latest data each time, which makes this a reproducible method of generating data.
+Before connecting, you will need to create a helpdesk ticket for NOAA IT to add a tnsnames.ora file with the AKFIN oracle connection to your computer.
+
+You can use R or SQL developer to connect directly. SQL developer is much more efficient for exploring the data tables. If you are new to SQL, it’s more efficient to tweak your code in there before running it in R.
+
+![The first time you connect you will have to specify some details, but you can save the connection so subsequent logins will only require your password.](img/sql_developer_new_connection.jpg)
+
+
+
+![Once you get your AKFIN connection setup it will look like this image. There are all these menus that you don't need to worry about. Counter-intuitively, the tables you seek are not under “Tables”. Instead look under “Other Users.” ](img/sidebar.png)
+
+![GAP_PRODUCTS tables in SQL developer](img/gap_sql_dev.jpg)
+
+You can also connect using R. If I have a query that I am happy with that I know I will need to run repeatedly I will embed it in my R script. 
+
+Below are some R examples. I use the odbc package to collect here but it is also possible to use the RODBC and RJDBC packages. The getPass package allows us to enter passwords without storing them in code (poor form).
+
+```{r message=FALSE}
+library(tidyverse)
+library(odbc)
+library(getPass)
+
+# connect to AKFIN
+con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
+
+# query db for norpac data
+dbFetch(dbSendQuery(con, "select * from norpac.debriefed_spcomp
+                                  where species=203
+                    and rownum<10")) %>%
+  rename_with(tolower)
+```
+
+You can also use the [afscdata package](https://github.com/afsc-assessments/afscdata). This was developed in 2023 and is designed to be flexible enough to pull data needed for assessments for each stock. This package uses the dbplyer package to translate dplyr filters into sql queries.
+
+```{r}
+#remotes::install_github("afsc-assessments/afscdata")
+library(afscdata)
+
+q_lls_rpn(year=2023, species=20510, area='ai', by='fmpsubarea', 
+                      use_historical=FALSE, db=con, print_sql=FALSE, save=FALSE)
+```
+
+
+## Web servies
+AKFIN can create web services (apis) to distribute data from a url. Web services do require a small amount of initial set up by AKFIN staff. They can be public or require authentication. Like a direct connection, a web service pull can be embedded in code and automated. They do not require NOAA network or VPN.
+
+Authenticated web services require a "secret string", which is converted into an Oracle authentication token and included in the web service request. Reach out to AKFIN for a secret string if you do not already have one.
+
+Example 1: SST in the Bering Sea:
+```{r}
+library(httr)
+library(jsonlite)
+
+jsonlite::fromJSON(httr::content(
+  httr::GET("https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=20230314&end_date=20230315"),
+  as = "text", encoding="UTF-8")) %>%
+  bind_rows()
+
+```
+
+Example 2: Chinook PSC in the Bering Sea
+```{r}
+# Secret string text file needs to be in your working R directory
+secret <- jsonlite::base64_enc( readChar("Callahan_token.txt",nchars=1e6) )
+
+# Get token from API
+req <- httr::POST("https://apex.psmfc.org/akfin/data_marts/oauth/token",
+                  httr::add_headers(
+                    "Authorization" = paste("Basic", gsub("\n", "", secret)),
+                    "Content-Type" = "application/x-www-form-urlencoded;charset=UTF-8"
+                  ),
+                  body = "grant_type=client_credentials"
+);
+
+#  Create authentication error message
+httr::stop_for_status(req, "Something broke.")
+token <- paste("Bearer", httr::content(req)$access_token)
+
+## GOA Halibut PSC for 2023
+start<-Sys.time()
+fromJSON(content(
+  GET('https://apex.psmfc.org/akfin/data_marts/akm/get_comprehensive_psc?startyear=2023&endyear=2023&fmp_area=GOA&species=HLBT',
+      add_headers(Authorization = token)),
+  as="text", encoding="UTF-8")) %>%
+  bind_rows() %>%
+  group_by(harvest_sector) %>%
+  summarize(halbt_psc_mt= round(sum(pscnq_estimate),2))
+end<-Sys.time()
+end-start
+```
+
+I wrote the [akfingapdata](https://github.com/MattCallahan-NOAA/akfingapdata) R package to pull data from the new gap_products tables. Here is an example from that.
+
+```{r message = FALSE}
+# devtools::install_github("MattCallahan-NOAA/akfingapdata")
+library(akfingapdata)
+
+token<-create_token("Callahan_token.txt")
+
+#pull GOA sablefish biomass 2015-2023
+get_gap_biomass(species_code=20510, survey_definition_id = 47, area_id = 99903, start_year=2015, end_year = 2023)
+
+```
+
+## APEX
+AKFIN has public APEX reports [here](https://reports.psmfc.org/akfin/f?p=501:1000::::::).
+
+## Shiny
+AKFIN has a shiny server with some shiny apps [here](https://shinyfin.psmfc.org/). You are welcome to add your own apps too!
