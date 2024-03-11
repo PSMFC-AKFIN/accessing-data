@@ -38,7 +38,7 @@ the best method for reproducible science because users must select their
 filters and download their data as a csv each use.
 
 <figure>
-<img src="img/crab%20dashboard.jpg" alt="example report on Answers" />
+<img src="img/crab%20dashboard.png" alt="example report on Answers" />
 <figcaption aria-hidden="true">example report on Answers</figcaption>
 </figure>
 
@@ -57,7 +57,7 @@ SQL, it’s more efficient to tweak your code in there before running it
 in R.
 
 <figure>
-<img src="img/sql_developer_new_connection.jpg"
+<img src="img/sql_developer_new_connection.png"
 alt="The first time you connect you will have to specify some details, but you can save the connection so subsequent logins will only require your password." />
 <figcaption aria-hidden="true">The first time you connect you will have
 to specify some details, but you can save the connection so subsequent
@@ -74,7 +74,7 @@ under “Tables”. Instead look under “Other Users.”</figcaption>
 </figure>
 
 <figure>
-<img src="img/gap_sql_dev.jpg"
+<img src="img/gap_sql_dev.png"
 alt="GAP_PRODUCTS tables in SQL developer" />
 <figcaption aria-hidden="true">GAP_PRODUCTS tables in SQL
 developer</figcaption>
@@ -105,45 +105,45 @@ dbFetch(dbSendQuery(con, "select * from norpac.debriefed_spcomp
                     and rownum<10")) %>%
   rename_with(tolower)
 #>   t_table cruise permit haul_seq    haul_join vessel  haul_date haul  sex
-#> 1     ATL  20142   7079       16 2.014201e+19   A713 2015-05-19    5 <NA>
-#> 2     ATL  20142   7079       18 2.014201e+19   A713 2015-05-23    6 <NA>
-#> 3     ATL  20142   7079       20 2.014201e+19   A713 2015-05-23    7 <NA>
-#> 4     ATL  20142   7079       22 2.014201e+19   A713 2015-05-24    8 <NA>
-#> 5     ATL  20142   7079       30 2.014201e+19   A713 2015-05-25   12 <NA>
-#> 6     ATL  20142   7079       34 2.014201e+19   A713 2015-05-25   14 <NA>
-#> 7     ATL  26578  35828        4 2.657804e+19  79413 2024-02-02    1 <NA>
-#> 8     ATL  20142   7079       36 2.014201e+19   A713 2015-05-25   15 <NA>
-#> 9     ATL  25162   2975       53 2.516200e+19  30860 2021-11-04    1 <NA>
+#> 1     ATL  14664   1607     2570 1.466400e+19   A255 2011-11-10  108 <NA>
+#> 2     ATL  25461   2110        3 2.546100e+19   A077 2022-05-25  433 <NA>
+#> 3     ATL  25461   2110       29 2.546100e+19   A077 2022-05-30  459 <NA>
+#> 4     ATL  25461   2110       59 2.546100e+19   A077 2022-06-06  489 <NA>
+#> 5     ATL  13458    438   129080 1.345800e+19   A273 2010-04-21    2 <NA>
+#> 6     ATL  13458    438   129081 1.345800e+19   A273 2010-04-22    3 <NA>
+#> 7     ATL  13458    438   129082 1.345800e+19   A273 2010-04-22    5 <NA>
+#> 8     ATL  13801   5744   131861 1.380101e+19   A444 2010-11-04  393 <NA>
+#> 9     ATL  13801   5744   131865 1.380101e+19   A444 2010-11-05  397 <NA>
 #>   species         species_name sample_type sample_number sample_size
-#> 1     203 SABLEFISH (BLACKCOD)           B             1         135
-#> 2     203 SABLEFISH (BLACKCOD)           B             1          70
-#> 3     203 SABLEFISH (BLACKCOD)           B             6          68
-#> 4     203 SABLEFISH (BLACKCOD)           B             2          72
-#> 5     203 SABLEFISH (BLACKCOD)           B             3          84
-#> 6     203 SABLEFISH (BLACKCOD)           B             6          74
-#> 7     203 SABLEFISH (BLACKCOD)           L             1         357
-#> 8     203 SABLEFISH (BLACKCOD)           B             4          68
-#> 9     203 SABLEFISH (BLACKCOD)           L             9         178
+#> 1     203 SABLEFISH (BLACKCOD)           B             1       20086
+#> 2     203 SABLEFISH (BLACKCOD)           B            25         168
+#> 3     203 SABLEFISH (BLACKCOD)           B            20         100
+#> 4     203 SABLEFISH (BLACKCOD)           B            14         148
+#> 5     203 SABLEFISH (BLACKCOD)           B           400        1620
+#> 6     203 SABLEFISH (BLACKCOD)           B           256        1620
+#> 7     203 SABLEFISH (BLACKCOD)           B           371        1620
+#> 8     203 SABLEFISH (BLACKCOD)           L            17         780
+#> 9     203 SABLEFISH (BLACKCOD)           L            20         723
 #>   sample_weight extrapolated_weight extrapolated_number percent_retained year
-#> 1          1.20              151.00                 126              100 2015
-#> 2          3.10              201.89                  65              100 2015
-#> 3         14.60             1068.81                 439              100 2015
-#> 4          5.20              509.09                 196              100 2015
-#> 5          8.90             1272.94                 429              100 2015
-#> 6         13.30              537.74                 243              100 2015
-#> 7          2.24                6.74                   3                0 2024
-#> 8         10.60              779.41                 294              100 2015
-#> 9         42.75              128.97                  27               89 2021
+#> 1          5.38                8.27                   2              100 2011
+#> 2         35.16             2195.93                1561                0 2022
+#> 3         28.69              892.37                 622              100 2022
+#> 4         27.38             1296.75                 663              100 2022
+#> 5       1351.95             2705.19                 978              100 2010
+#> 6        913.21             1973.76                 768               99 2010
+#> 7       1256.07             2252.18                 866              100 2010
+#> 8         71.28              204.26                  46               99 2010
+#> 9         82.40              233.98                  57              100 2010
 #>   date_of_entry     akfin_load_date
-#> 1    2023-02-27 2024-03-05 23:45:01
-#> 2    2023-02-27 2024-03-05 23:45:01
-#> 3    2023-02-27 2024-03-05 23:45:01
-#> 4    2023-02-27 2024-03-05 23:45:01
-#> 5    2023-02-27 2024-03-05 23:45:01
-#> 6    2023-02-27 2024-03-05 23:45:01
-#> 7    2024-02-26 2024-03-05 23:45:01
-#> 8    2023-02-27 2024-03-05 23:45:01
-#> 9    2022-01-16 2024-03-05 23:45:01
+#> 1    2011-11-10 2024-03-10 23:45:01
+#> 2    2022-07-20 2024-03-10 23:45:01
+#> 3    2022-07-20 2024-03-10 23:45:01
+#> 4    2022-07-20 2024-03-10 23:45:01
+#> 5    2010-04-21 2024-03-10 23:45:01
+#> 6    2010-04-22 2024-03-10 23:45:01
+#> 7    2010-04-22 2024-03-10 23:45:01
+#> 8    2010-11-04 2024-03-10 23:45:01
+#> 9    2010-11-05 2024-03-10 23:45:01
 ```
 
 You can also use the [afscdata
@@ -259,7 +259,7 @@ fromJSON(content(
 #> 2 CV                     476.
 end<-Sys.time()
 end-start
-#> Time difference of 18.32456 secs
+#> Time difference of 23.76929 secs
 ```
 
 I wrote the

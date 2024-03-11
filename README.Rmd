@@ -37,7 +37,7 @@ Currently each data access method has its own set of credentials. Your AKFIN ora
 Answers does not require any coding and it can be accessed without a VPN connection.
 Answers is not the best method for reproducible science because users must select their filters and download their data as a csv each use. 
 
-![example report on Answers](img/crab dashboard.jpg)
+![example report on Answers](img/crab dashboard.png)
 
 ## Direct database connection
 Users can connect to the database and pull data using SQL query. 
@@ -47,13 +47,13 @@ Before connecting, you will need to create a helpdesk ticket for NOAA IT to add 
 
 You can use R or SQL developer to connect directly. SQL developer is much more efficient for exploring the data tables. If you are new to SQL, it’s more efficient to tweak your code in there before running it in R.
 
-![The first time you connect you will have to specify some details, but you can save the connection so subsequent logins will only require your password.](img/sql_developer_new_connection.jpg)
+![The first time you connect you will have to specify some details, but you can save the connection so subsequent logins will only require your password.](img/sql_developer_new_connection.png)
 
 
 
 ![Once you get your AKFIN connection setup it will look like this image. There are all these menus that you don't need to worry about. Counter-intuitively, the tables you seek are not under “Tables”. Instead look under “Other Users.” ](img/sidebar.png)
 
-![GAP_PRODUCTS tables in SQL developer](img/gap_sql_dev.jpg)
+![GAP_PRODUCTS tables in SQL developer](img/gap_sql_dev.png)
 
 You can also connect using R. If I have a query that I am happy with that I know I will need to run repeatedly I will embed it in my R script. 
 
