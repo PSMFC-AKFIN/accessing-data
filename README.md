@@ -212,6 +212,8 @@ library(jsonlite)
 #> The following object is masked from 'package:purrr':
 #> 
 #>     flatten
+library(keyring)
+#> Warning: package 'keyring' was built under R version 4.3.3
 
 jsonlite::fromJSON(httr::content(
   httr::GET("https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=20230314&end_date=20230315"),
@@ -227,8 +229,11 @@ jsonlite::fromJSON(httr::content(
 Example 2: Chinook PSC in the Bering Sea
 
 ``` r
+# Set secret string using keyring. You will only need to do this once.
+#keyring::key_set(service="akfin_secret")
+
 # Secret string text file needs to be in your working R directory
-secret <- jsonlite::base64_enc( readChar("Callahan_token.txt",nchars=1e6) )
+secret <- jsonlite::base64_enc( keyring::key_get("akfin_secret") )
 
 # Get token from API
 req <- httr::POST("https://apex.psmfc.org/akfin/data_marts/oauth/token",
@@ -259,7 +264,7 @@ fromJSON(content(
 #> 2 CV                     476.
 end<-Sys.time()
 end-start
-#> Time difference of 23.76929 secs
+#> Time difference of 18.51859 secs
 ```
 
 I wrote the
