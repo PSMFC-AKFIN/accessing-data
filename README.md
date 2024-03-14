@@ -22,9 +22,9 @@ In order to be eligible to access confidential data on AKFIN, you must
 have an NDA on file the the NMFS Alaska regional office (AKR). Once your
 NDA is in place, you can request and AKFIN account here.
 
-Currently each data access method has its own set of credentials. Your
-AKFIN oracle database account is different from your AKFIN ANSWERS
-login, and APEX reports and web services require a separate credentials
+Data access methods may have different sets of credentials. Your
+AKFIN oracle database account is the same as your APEX report access but different from your AKFIN ANSWERS
+login, and web services require a separate credentials
 as well. Each access method will be covered in more detail below.
 
 ## AKFIN Answers
