@@ -22,9 +22,9 @@ In order to be eligible to access confidential data on AKFIN, you must
 have an NDA on file the the NMFS Alaska regional office (AKR). Once your
 NDA is in place, you can request and AKFIN account here.
 
-Data access methods may have different sets of credentials. Your
-AKFIN oracle database account is the same as your APEX report access but different from your AKFIN ANSWERS
-login, and web services require a separate credentials
+Currently each data access method has its own set of credentials. Your
+AKFIN oracle database account is different from your AKFIN ANSWERS
+login, and APEX reports and web services require a separate credentials
 as well. Each access method will be covered in more detail below.
 
 ## AKFIN Answers
@@ -47,9 +47,11 @@ filters and download their data as a csv each use.
 Users can connect to the database and pull data using SQL query. This
 method requires VPN or NOAA network. Queries can be reused, pulling the
 latest data each time, which makes this a reproducible method of
-generating data. Before connecting, you will need to create a helpdesk
-ticket for NOAA IT to add a tnsnames.ora file with the AKFIN oracle
-connection to your computer.
+generating data. Before connecting, you will likely need to create a
+helpdesk ticket for NOAA IT to add a tnsnames.ora file with the AKFIN
+oracle connection to your computer.
+[Here](https://github.com/PSMFC-AKFIN/accessing-data/blob/main/OT-How-to_%20Direct%20DB%20Access%20from%20R%20using%20ODBC-150125-233139.pdf)
+are further instructions for setting up your connection.
 
 You can use R or SQL developer to connect directly. SQL developer is
 much more efficient for exploring the data tables. If you are new to
@@ -92,12 +94,14 @@ form).
 ``` r
 library(tidyverse)
 library(odbc)
+#> Warning: package 'odbc' was built under R version 4.4.1
+```
+
+``` r
 library(getPass)
 
 # connect to AKFIN
 con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
-#> Please enter password in TK window (Alt+Tab)
-#> Please enter password in TK window (Alt+Tab)
 
 # query db for norpac data
 dbFetch(dbSendQuery(con, "select * from norpac.debriefed_spcomp
@@ -105,45 +109,45 @@ dbFetch(dbSendQuery(con, "select * from norpac.debriefed_spcomp
                     and rownum<10")) %>%
   rename_with(tolower)
 #>   t_table cruise permit haul_seq    haul_join vessel  haul_date haul  sex
-#> 1     ATL  14664   1607     2570 1.466400e+19   A255 2011-11-10  108 <NA>
-#> 2     ATL  25461   2110        3 2.546100e+19   A077 2022-05-25  433 <NA>
-#> 3     ATL  25461   2110       29 2.546100e+19   A077 2022-05-30  459 <NA>
-#> 4     ATL  25461   2110       59 2.546100e+19   A077 2022-06-06  489 <NA>
-#> 5     ATL  13458    438   129080 1.345800e+19   A273 2010-04-21    2 <NA>
-#> 6     ATL  13458    438   129081 1.345800e+19   A273 2010-04-22    3 <NA>
-#> 7     ATL  13458    438   129082 1.345800e+19   A273 2010-04-22    5 <NA>
-#> 8     ATL  13801   5744   131861 1.380101e+19   A444 2010-11-04  393 <NA>
-#> 9     ATL  13801   5744   131865 1.380101e+19   A444 2010-11-05  397 <NA>
+#> 1     ATL  23389  31518       38 2.338903e+19  89173 2019-04-17   11 <NA>
+#> 2     ATL  23398   1170       20 2.339800e+19  26017 2019-05-02    1 <NA>
+#> 3     ATL  23398   1170       22 2.339800e+19  26017 2019-05-02    2 <NA>
+#> 4     ATL  23754    438       36 2.375400e+19   A273 2019-09-20  273 <NA>
+#> 5     ATL  23754    438       46 2.375400e+19   A273 2019-09-20  277 <NA>
+#> 6     ATL  23754    438       48 2.375400e+19   A273 2019-09-20  276 <NA>
+#> 7     ATL  13801   5744   131851 1.380101e+19   A444 2010-11-01  383 <NA>
+#> 8     ATL  13801   5744   131852 1.380101e+19   A444 2010-11-01  384 <NA>
+#> 9     ATL  13801   5744   131855 1.380101e+19   A444 2010-11-02  387 <NA>
 #>   species         species_name sample_type sample_number sample_size
-#> 1     203 SABLEFISH (BLACKCOD)           B             1       20086
-#> 2     203 SABLEFISH (BLACKCOD)           B            25         168
-#> 3     203 SABLEFISH (BLACKCOD)           B            20         100
-#> 4     203 SABLEFISH (BLACKCOD)           B            14         148
-#> 5     203 SABLEFISH (BLACKCOD)           B           400        1620
-#> 6     203 SABLEFISH (BLACKCOD)           B           256        1620
-#> 7     203 SABLEFISH (BLACKCOD)           B           371        1620
-#> 8     203 SABLEFISH (BLACKCOD)           L            17         780
-#> 9     203 SABLEFISH (BLACKCOD)           L            20         723
+#> 1     203 SABLEFISH (BLACKCOD)           B            71        1575
+#> 2     203 SABLEFISH (BLACKCOD)           B            18        1038
+#> 3     203 SABLEFISH (BLACKCOD)           B            25        1211
+#> 4     203 SABLEFISH (BLACKCOD)           B            73         736
+#> 5     203 SABLEFISH (BLACKCOD)           B            48        1104
+#> 6     203 SABLEFISH (BLACKCOD)           B            32        1104
+#> 7     203 SABLEFISH (BLACKCOD)           L            17         495
+#> 8     203 SABLEFISH (BLACKCOD)           L            29         785
+#> 9     203 SABLEFISH (BLACKCOD)           L             6         568
 #>   sample_weight extrapolated_weight extrapolated_number percent_retained year
-#> 1          5.38                8.27                   2              100 2011
-#> 2         35.16             2195.93                1561                0 2022
-#> 3         28.69              892.37                 622              100 2022
-#> 4         27.38             1296.75                 663              100 2022
-#> 5       1351.95             2705.19                 978              100 2010
-#> 6        913.21             1973.76                 768               99 2010
-#> 7       1256.07             2252.18                 866              100 2010
-#> 8         71.28              204.26                  46               99 2010
-#> 9         82.40              233.98                  57              100 2010
+#> 1        143.89              384.88                 203               97 2019
+#> 2         61.57              220.08                  63              100 2019
+#> 3        116.59              268.13                  75              100 2019
+#> 4        231.16              578.98                 274               93 2019
+#> 5        199.88              346.06                 160              100 2019
+#> 6        135.69              194.57                 107              100 2019
+#> 7         78.17              287.52                  65              100 2010
+#> 8        111.00              307.55                  80              100 2010
+#> 9        120.06               94.39                  24              100 2010
 #>   date_of_entry     akfin_load_date
-#> 1    2011-11-10 2024-03-10 23:45:01
-#> 2    2022-07-20 2024-03-10 23:45:01
-#> 3    2022-07-20 2024-03-10 23:45:01
-#> 4    2022-07-20 2024-03-10 23:45:01
-#> 5    2010-04-21 2024-03-10 23:45:01
-#> 6    2010-04-22 2024-03-10 23:45:01
-#> 7    2010-04-22 2024-03-10 23:45:01
-#> 8    2010-11-04 2024-03-10 23:45:01
-#> 9    2010-11-05 2024-03-10 23:45:01
+#> 1    2021-12-30 2025-02-12 23:45:01
+#> 2    2021-12-30 2025-02-12 23:45:01
+#> 3    2021-12-30 2025-02-12 23:45:01
+#> 4    2024-02-12 2025-02-12 23:45:01
+#> 5    2024-02-12 2025-02-12 23:45:01
+#> 6    2024-02-12 2025-02-12 23:45:01
+#> 7    2010-11-01 2025-02-12 23:45:01
+#> 8    2010-11-01 2025-02-12 23:45:01
+#> 9    2010-11-02 2025-02-12 23:45:01
 ```
 
 You can also use the [afscdata
@@ -212,8 +216,10 @@ library(jsonlite)
 #> The following object is masked from 'package:purrr':
 #> 
 #>     flatten
+```
+
+``` r
 library(keyring)
-#> Warning: package 'keyring' was built under R version 4.3.3
 
 jsonlite::fromJSON(httr::content(
   httr::GET("https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=20230314&end_date=20230315"),
@@ -261,10 +267,13 @@ fromJSON(content(
 #>   harvest_sector halbt_psc_mt
 #>   <chr>                 <dbl>
 #> 1 CP                     438.
-#> 2 CV                     476.
+#> 2 CV                     477.
+```
+
+``` r
 end<-Sys.time()
 end-start
-#> Time difference of 18.51859 secs
+#> Time difference of 22.54827 secs
 ```
 
 I wrote the
@@ -293,11 +302,11 @@ get_gap_biomass(species_code=20510, survey_definition_id = 47, area_id = 99903, 
 #> 4      305       1054.0152      10354.030        798.9722       6623.009
 #> 5      233        634.0286       3541.078        404.6120       1241.430
 #>   biomass_mt biomass_var population_count population_var      akfin_load_date
-#> 1   159212.2   192135969         94407467   1.328710e+14 2024-02-16T00:46:14Z
-#> 2   144279.9   506081889        139430982   7.358199e+14 2024-02-16T00:46:14Z
-#> 3   264715.7   390887102        205523741   2.998548e+14 2024-02-16T00:46:14Z
-#> 4   325075.2   984880265        246415859   6.299837e+14 2024-02-16T00:46:14Z
-#> 5   195544.6   336828990        124788847   1.180854e+14 2024-02-16T00:46:14Z
+#> 1   159212.2   192135969         94407467   1.328710e+14 2024-10-24T16:20:42Z
+#> 2   144279.9   506081889        139430982   7.358199e+14 2024-10-24T16:20:42Z
+#> 3   264715.7   390887102        205523741   2.998548e+14 2024-10-24T16:20:42Z
+#> 4   325075.2   984880265        246415859   6.299837e+14 2024-10-24T16:20:42Z
+#> 5   195544.6   336828990        124788847   1.180854e+14 2024-10-24T16:20:42Z
 ```
 
 ## APEX

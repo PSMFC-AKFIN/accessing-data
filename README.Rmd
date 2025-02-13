@@ -43,7 +43,7 @@ Answers is not the best method for reproducible science because users must selec
 Users can connect to the database and pull data using SQL query. 
 This method requires VPN or NOAA network.
 Queries can be reused, pulling the latest data each time, which makes this a reproducible method of generating data.
-Before connecting, you will need to create a helpdesk ticket for NOAA IT to add a tnsnames.ora file with the AKFIN oracle connection to your computer.
+Before connecting, you will likely need to create a helpdesk ticket for NOAA IT to add a tnsnames.ora file with the AKFIN oracle connection to your computer. [Here](https://github.com/PSMFC-AKFIN/accessing-data/blob/main/OT-How-to_%20Direct%20DB%20Access%20from%20R%20using%20ODBC-150125-233139.pdf) are further instructions for setting up your connection.
 
 You can use R or SQL developer to connect directly. SQL developer is much more efficient for exploring the data tables. If you are new to SQL, it’s more efficient to tweak your code in there before running it in R.
 
