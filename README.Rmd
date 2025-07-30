@@ -19,12 +19,12 @@ The purpose of this document is to summarize and provide examples of the major w
 The AKFIN database is a common source of data for AFSC stock assessment, NPFMC, and many other Alaskan Fisheries needs.
 It is an Oracle database currently housed on a PSMFC server in Portland. 
 AKFIN products pull data from the AKFIN database so regardless of which data access method is used, the same data is received.
-Here are the major ways that AKFIN distributes data.
-  1) Direct database connection through R or SQL developer.
-  2) APEX reporting
-  3) Web service (api)
-  4) AKFIN ANSWERS
 This document will cover methods, strengths, and weaknesses of these data access pathways.
+  1. Direct database connection through R or SQL developer.
+  2. APEX reporting
+  3. Web service (api)
+  4. AKFIN ANSWERS
+
 
 ## AKFIN permissions
 In order to be eligible to access confidential data on AKFIN, you must have an NDA on file at the NMFS Alaska regional office (AKR). Once your NDA is in place, you can request an AKFIN account [here](https://reports.psmfc.org/akfin/akfin/r/profile/request-account).
@@ -38,7 +38,7 @@ SQL developer is handy for designing SQL queries and examining table structure. 
 The [dbplyr](https://dbplyr.tidyverse.org/) R package also offers a tidyverse wrapper for SQL queries, which many users find helpful. 
 
 
-Before connecting, users must complete the following steps. An AFSC helpdesk ticket might expedite this process and will be required without admin privileges. 
+Before connecting, users must complete the following steps. An AFSC helpdesk ticket might expedite this process and will be required without admin privileges.
 
 * install oracle Database 19c Client (19.3) for Microsoft Windows x64 (64-bit) using the self service portal or it download [here](https://www.oracle.com/database/technologies/oracle19c-windows-downloads.html)
 * Update tnsnames.ora file
@@ -47,14 +47,9 @@ Before connecting, users must complete the following steps. An AFSC helpdesk tic
 * set up ODBC data sources (not needed for SQL developer but necessary for R)
   + Open windows tools and double click "ODBC Data Sources (64-bit)"
   + In the popup, select "System DSN" and click Add...
-  + [](image/systemdsn.png)
+![](img/systemdsn.png)
   + The next popup will vary some based on the services you have installed already. Look for the version titled "Oracle in OracleClient19Home1". Do not use a version with instant client in the title. 
   + In the config window enter Data Source Name – AKFIN, PacFIN or RecFIN based on service you are accessing. Description – up to you, but something to help you identify what it is. TNS server name is either akfin for Alaska data, or PacFIN for west coast commercial or recreational data (PacFIN and/or RecFIN). I leave the user ID blank. You can use scripts in R to automatically load your user ID and password. Click test and enter your user ID and password. If it passes click OK. If not please note error and contact staff to figure out the error
-
-
-AFSC helpdesklikely need to create a helpdesk ticket for NOAA IT to add a tnsnames.ora file with the AKFIN oracle connection to your computer. [Here](https://github.com/PSMFC-AKFIN/accessing-data/blob/main/OT-How-to_%20Direct%20DB%20Access%20from%20R%20using%20ODBC-150125-233139.pdf) are further instructions for setting up your connection.
-
-You can use R or SQL developer to connect directly. SQL developer is much more efficient for exploring the data tables. If you are new to SQL, it’s more efficient to tweak your code in there before running it in R.
 
 ![The first time you connect you will have to specify some details, but you can save the connection so subsequent logins will only require your password.](img/sql_developer_new_connection.png)
 
@@ -66,20 +61,23 @@ You can use R or SQL developer to connect directly. SQL developer is much more e
 
 You can also connect using R. If I have a query that I am happy with that I know I will need to run repeatedly I will embed it in my R script. 
 
-Below are some R examples. I use the odbc package to collect here but it is also possible to use the RODBC and RJDBC packages. The getPass package allows us to enter passwords without storing them in code (poor form).
+Below are some R examples. I use the odbc package to connect here but it is also possible to use the RODBC and RJDBC packages. RJDBC is ~3x faster than odbc or RODBC. The keyring and getPass packages allows us to enter passwords without storing them in code (poor form).
 
 ```{r message=FALSE}
 library(tidyverse)
 library(odbc)
 library(getPass)
+library(keyring)
 
 # connect to AKFIN
-con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
+con <- dbConnect(odbc::odbc(), "akfin", UID=key_list("akfin_oracle_db")$username, PWD = keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
 
-# query db for norpac data
-dbFetch(dbSendQuery(con, "select * from norpac.debriefed_spcomp
-                                  where species=203
-                    and rownum<10")) %>%
+# If you don't use keyring use getpass and enter credentials
+# con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
+
+# query db for survey data
+dbFetch(dbSendQuery(con, "select * from gap_products.akfin_biomass_v
+                                  where rownum<10")) %>%
   rename_with(tolower)
 ```
 
@@ -94,7 +92,8 @@ q_lls_rpn(year=2023, species=20510, area='ai', by='fmpsubarea',
 ```
 
 ## APEX
-AKFIN APEX (Application Express) reports are available [here](https://reports.psmfc.org/akfin/f?p=501:1000::::::). Log in with your oracle credentials to see confidential reports.
+AKFIN APEX (Application Express) reports are available [here](https://reports.psmfc.org/akfin/f?p=501:1000::::::). Log in with your oracle credentials by clicking public then login in the upper right to see confidential reports.
+![](img/apex.png)
 
 ## Web servies
 AKFIN can create web services (apis) to distribute data from a url. Web services do require a small amount of initial set up by AKFIN staff. They can be public or require authentication. Like a direct connection, a web service pull can be embedded in code and automated. They do not require NOAA network or VPN.
@@ -168,7 +167,3 @@ Answers does not require any coding and it can be accessed without a VPN connect
 Answers is not the best method for reproducible science because users must select their filters and download their data as a csv each use. 
 
 ![example report on Answers](img/crab dashboard.png)
-
-
-## Shiny
-AKFIN has a shiny server with some shiny apps [here](https://shinyfin.psmfc.org/). You are welcome to add your own apps too!

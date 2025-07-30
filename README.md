@@ -2,6 +2,7 @@
 ## Accessing data on AKFIN
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 The purpose of this document is to summarize and provide examples of the
@@ -10,53 +11,63 @@ database is a common source of data for AFSC stock assessment, NPFMC,
 and many other Alaskan Fisheries needs. It is an Oracle database
 currently housed on a PSMFC server in Portland. AKFIN products pull data
 from the AKFIN database so regardless of which data access method is
-used, the same data is received. Here are the major ways that AKFIN
-distributes data. 1) AKFIN ANSWERS 2) Direct database connection through
-R or SQL developer. 3) Web service (api) 4) APEX reporting This document
-will cover methods, strengths, and weaknesses of these data access
-pathways.
+used, the same data is received. This document will cover methods,
+strengths, and weaknesses of these data access pathways. 1. Direct
+database connection through R or SQL developer. 2. APEX reporting 3. Web
+service (api) 4. AKFIN ANSWERS
 
 ## AKFIN permissions
 
 In order to be eligible to access confidential data on AKFIN, you must
-have an NDA on file the the NMFS Alaska regional office (AKR). Once your
-NDA is in place, you can request and AKFIN account here.
+have an NDA on file at the NMFS Alaska regional office (AKR). Once your
+NDA is in place, you can request an AKFIN account
+[here](https://reports.psmfc.org/akfin/akfin/r/profile/request-account).
 
-Currently each data access method has its own set of credentials. Your
-AKFIN oracle database account is different from your AKFIN ANSWERS
-login, and APEX reports and web services require a separate credentials
-as well. Each access method will be covered in more detail below.
-
-## AKFIN Answers
-
-[AKFIN
-Answers](https://akfinbi.psmfc.org/bi-security-login/login.jsp?msi=false&redirect=L2FuYWx5dGljcy9zYXcuZGxsP2JpZWVob21lJnN0YXJ0UGFnZT0xJmhhc2g9Y0MtckpJLUVnQUhzUlBtMDM5TWZBamZxdkctT0oydlhlc0VON0h2azlyeFFOSlZRZkNMTVlHYWRNdXRTcmF1Wg==)
-is an Oracle BI tool that allows users to browse, filter, and download
-data using a point and click web interface. Answers does not require any
-coding and it can be accessed without a VPN connection. Answers is not
-the best method for reproducible science because users must select their
-filters and download their data as a csv each use.
-
-<figure>
-<img src="img/crab%20dashboard.png" alt="example report on Answers" />
-<figcaption aria-hidden="true">example report on Answers</figcaption>
-</figure>
+The credentials for a direct database connection and Oracle APEX are the
+same but AKFIN ANSWERS is a separate account. Confidential web services
+also require a separate set of credentials.
 
 ## Direct database connection
 
-Users can connect to the database and pull data using SQL query. This
-method requires VPN or NOAA network. Queries can be reused, pulling the
-latest data each time, which makes this a reproducible method of
-generating data. Before connecting, you will likely need to create a
-helpdesk ticket for NOAA IT to add a tnsnames.ora file with the AKFIN
-oracle connection to your computer.
-[Here](https://github.com/PSMFC-AKFIN/accessing-data/blob/main/OT-How-to_%20Direct%20DB%20Access%20from%20R%20using%20ODBC-150125-233139.pdf)
-are further instructions for setting up your connection.
+Users can connect to the database and pull data in SQL developer, R, or
+python while on PSMFC or NOAA networks of VPN. SQL developer is handy
+for designing SQL queries and examining table structure. Once a query is
+perfected, it can be reused in R, reproducibly pulling the latest data
+each time. The [dbplyr](https://dbplyr.tidyverse.org/) R package also
+offers a tidyverse wrapper for SQL queries, which many users find
+helpful.
 
-You can use R or SQL developer to connect directly. SQL developer is
-much more efficient for exploring the data tables. If you are new to
-SQL, it’s more efficient to tweak your code in there before running it
-in R.
+Before connecting, users must complete the following steps. An AFSC
+helpdesk ticket might expedite this process and will be required without
+admin privileges.
+
+- install oracle Database 19c Client (19.3) for Microsoft Windows x64
+  (64-bit) using the self service portal or it download
+  [here](https://www.oracle.com/database/technologies/oracle19c-windows-downloads.html)
+- Update tnsnames.ora file
+  - Once the install is complete you will need to get the AKFIN
+    connection information in a tnsnames.ora file. Contact AKFIN staff
+    for the correct version of the file.
+  - If you already have a tnsnames.ora file than the AKFIN connection
+    will just need to be added.
+- set up ODBC data sources (not needed for SQL developer but necessary
+  for R)
+  - Open windows tools and double click “ODBC Data Sources (64-bit)”
+  - In the popup, select “System DSN” and click Add…
+    ![](img/systemdsn.png)
+  - The next popup will vary some based on the services you have
+    installed already. Look for the version titled “Oracle in
+    OracleClient19Home1”. Do not use a version with instant client in
+    the title.
+  - In the config window enter Data Source Name – AKFIN, PacFIN or
+    RecFIN based on service you are accessing. Description – up to you,
+    but something to help you identify what it is. TNS server name is
+    either akfin for Alaska data, or PacFIN for west coast commercial or
+    recreational data (PacFIN and/or RecFIN). I leave the user ID blank.
+    You can use scripts in R to automatically load your user ID and
+    password. Click test and enter your user ID and password. If it
+    passes click OK. If not please note error and contact staff to
+    figure out the error
 
 <figure>
 <img src="img/sql_developer_new_connection.png"
@@ -86,10 +97,10 @@ You can also connect using R. If I have a query that I am happy with
 that I know I will need to run repeatedly I will embed it in my R
 script.
 
-Below are some R examples. I use the odbc package to collect here but it
-is also possible to use the RODBC and RJDBC packages. The getPass
-package allows us to enter passwords without storing them in code (poor
-form).
+Below are some R examples. I use the odbc package to connect here but it
+is also possible to use the RODBC and RJDBC packages. RJDBC is ~3x
+faster than odbc or RODBC. The keyring and getPass packages allows us to
+enter passwords without storing them in code (poor form).
 
 ``` r
 library(tidyverse)
@@ -99,55 +110,98 @@ library(odbc)
 
 ``` r
 library(getPass)
+library(keyring)
 
 # connect to AKFIN
-con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
+con <- dbConnect(odbc::odbc(), "akfin", UID=key_list("akfin_oracle_db")$username, PWD = keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
 
-# query db for norpac data
-dbFetch(dbSendQuery(con, "select * from norpac.debriefed_spcomp
-                                  where species=203
-                    and rownum<10")) %>%
+# If you don't use keyring use getpass and enter credentials
+# con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
+
+# query db for survey data
+dbFetch(dbSendQuery(con, "select * from gap_products.akfin_biomass_v
+                                  where rownum<10")) %>%
   rename_with(tolower)
-#>   t_table cruise permit haul_seq    haul_join vessel  haul_date haul  sex
-#> 1     ATL  23389  31518       38 2.338903e+19  89173 2019-04-17   11 <NA>
-#> 2     ATL  23398   1170       20 2.339800e+19  26017 2019-05-02    1 <NA>
-#> 3     ATL  23398   1170       22 2.339800e+19  26017 2019-05-02    2 <NA>
-#> 4     ATL  23754    438       36 2.375400e+19   A273 2019-09-20  273 <NA>
-#> 5     ATL  23754    438       46 2.375400e+19   A273 2019-09-20  277 <NA>
-#> 6     ATL  23754    438       48 2.375400e+19   A273 2019-09-20  276 <NA>
-#> 7     ATL  13801   5744   131851 1.380101e+19   A444 2010-11-01  383 <NA>
-#> 8     ATL  13801   5744   131852 1.380101e+19   A444 2010-11-01  384 <NA>
-#> 9     ATL  13801   5744   131855 1.380101e+19   A444 2010-11-02  387 <NA>
-#>   species         species_name sample_type sample_number sample_size
-#> 1     203 SABLEFISH (BLACKCOD)           B            71        1575
-#> 2     203 SABLEFISH (BLACKCOD)           B            18        1038
-#> 3     203 SABLEFISH (BLACKCOD)           B            25        1211
-#> 4     203 SABLEFISH (BLACKCOD)           B            73         736
-#> 5     203 SABLEFISH (BLACKCOD)           B            48        1104
-#> 6     203 SABLEFISH (BLACKCOD)           B            32        1104
-#> 7     203 SABLEFISH (BLACKCOD)           L            17         495
-#> 8     203 SABLEFISH (BLACKCOD)           L            29         785
-#> 9     203 SABLEFISH (BLACKCOD)           L             6         568
-#>   sample_weight extrapolated_weight extrapolated_number percent_retained year
-#> 1        143.89              384.88                 203               97 2019
-#> 2         61.57              220.08                  63              100 2019
-#> 3        116.59              268.13                  75              100 2019
-#> 4        231.16              578.98                 274               93 2019
-#> 5        199.88              346.06                 160              100 2019
-#> 6        135.69              194.57                 107              100 2019
-#> 7         78.17              287.52                  65              100 2010
-#> 8        111.00              307.55                  80              100 2010
-#> 9        120.06               94.39                  24              100 2010
-#>   date_of_entry     akfin_load_date
-#> 1    2021-12-30 2025-02-12 23:45:01
-#> 2    2021-12-30 2025-02-12 23:45:01
-#> 3    2021-12-30 2025-02-12 23:45:01
-#> 4    2024-02-12 2025-02-12 23:45:01
-#> 5    2024-02-12 2025-02-12 23:45:01
-#> 6    2024-02-12 2025-02-12 23:45:01
-#> 7    2010-11-01 2025-02-12 23:45:01
-#> 8    2010-11-01 2025-02-12 23:45:01
-#> 9    2010-11-02 2025-02-12 23:45:01
+#>                            survey_name survey_definition_id year area_id
+#> 1 Aleutian Islands Bottom Trawl Survey                   52 1991     823
+#> 2 Aleutian Islands Bottom Trawl Survey                   52 1991     824
+#> 3 Aleutian Islands Bottom Trawl Survey                   52 1991     991
+#> 4 Aleutian Islands Bottom Trawl Survey                   52 1991     992
+#> 5 Aleutian Islands Bottom Trawl Survey                   52 1991     993
+#> 6 Aleutian Islands Bottom Trawl Survey                   52 1991     994
+#> 7 Aleutian Islands Bottom Trawl Survey                   52 1991    3491
+#> 8 Aleutian Islands Bottom Trawl Survey                   52 1991    3492
+#> 9 Aleutian Islands Bottom Trawl Survey                   52 1991    3493
+#>   species_code n_haul n_weight n_count n_length cpue_kgkm2_mean cpue_kgkm2_var
+#> 1        20614      2        0       0        0        0.000000       0.000000
+#> 2        20614      4        0       0        0        0.000000       0.000000
+#> 3        20614     66        0       0        0        0.000000       0.000000
+#> 4        20614    160        0       0        0        0.000000       0.000000
+#> 5        20614     60        0       0        0        0.000000       0.000000
+#> 6        20614     45        1       1        0        0.135175       0.018272
+#> 7        20614     16        0       0        0        0.000000       0.000000
+#> 8        20614     44        0       0        0        0.000000       0.000000
+#> 9        20614     20        0       0        0        0.000000       0.000000
+#>   cpue_nokm2_mean cpue_nokm2_var biomass_mt biomass_var population_count
+#> 1         0.00000        0.00000   0.000000    0.000000                0
+#> 2         0.00000        0.00000   0.000000    0.000000                0
+#> 3         0.00000        0.00000   0.000000    0.000000                0
+#> 4         0.00000        0.00000   0.000000    0.000000                0
+#> 5         0.00000        0.00000   0.000000    0.000000                0
+#> 6         3.47878       12.10191   1.889661    3.570818            48631
+#> 7         0.00000        0.00000   0.000000    0.000000                0
+#> 8         0.00000        0.00000   0.000000    0.000000                0
+#> 9         0.00000        0.00000   0.000000    0.000000                0
+#>   population_var         common_name species_name                area_type
+#> 1              0 deepsea smelt unid. Bathylagidae REGULATORY AREA BY DEPTH
+#> 2              0 deepsea smelt unid. Bathylagidae REGULATORY AREA BY DEPTH
+#> 3              0 deepsea smelt unid. Bathylagidae                    DEPTH
+#> 4              0 deepsea smelt unid. Bathylagidae                    DEPTH
+#> 5              0 deepsea smelt unid. Bathylagidae                    DEPTH
+#> 6     2364971947 deepsea smelt unid. Bathylagidae                    DEPTH
+#> 7              0 deepsea smelt unid. Bathylagidae           INPFC BY DEPTH
+#> 8              0 deepsea smelt unid. Bathylagidae           INPFC BY DEPTH
+#> 9              0 deepsea smelt unid. Bathylagidae           INPFC BY DEPTH
+#>   survey_code depth_min_m depth_max_m           area_name
+#> 1          AI         201         300 Southern Bering Sea
+#> 2          AI         301         500 Southern Bering Sea
+#> 3          AI           1         100                 All
+#> 4          AI         101         200                 All
+#> 5          AI         201         300                 All
+#> 6          AI         301         500                 All
+#> 7          AI           1         100   Central Aleutians
+#> 8          AI         101         200   Central Aleutians
+#> 9          AI         201         300   Central Aleutians
+#>                  area_description area_km2 design_year region regulatory_area
+#> 1      S BERING SEA 201 m - 300 m       NA        1991   <NA>            <NA>
+#> 2      S BERING SEA 301 m - 500 m       NA        1991   <NA>            <NA>
+#> 3          All areas 1-100 meters       NA        1991   <NA>            <NA>
+#> 4        All areas 101-200 meters       NA        1991   <NA>            <NA>
+#> 5        All areas 201-300 meters       NA        1991   <NA>            <NA>
+#> 6        All areas 301-500 meters       NA        1991   <NA>            <NA>
+#> 7   Central Aleutians 1 m - 100 m       NA        1991   <NA>            <NA>
+#> 8 Central Aleutians 101 m - 200 m       NA        1991   <NA>            <NA>
+#> 9 Central Aleutians 201 m - 300 m       NA        1991   <NA>            <NA>
+#>   inpfc_by_depth inpfc depth nmfs_statistical_area regulatory_area_by_depth
+#> 1           <NA>  <NA>  <NA>                  <NA>                     <NA>
+#> 2           <NA>  <NA>  <NA>                  <NA>                     <NA>
+#> 3           <NA>  <NA>  <NA>                  <NA>                     <NA>
+#> 4           <NA>  <NA>  <NA>                  <NA>                     <NA>
+#> 5           <NA>  <NA>  <NA>                  <NA>                     <NA>
+#> 6           <NA>  <NA>  <NA>                  <NA>                     <NA>
+#> 7           <NA>  <NA>  <NA>                  <NA>                     <NA>
+#> 8           <NA>  <NA>  <NA>                  <NA>                     <NA>
+#> 9           <NA>  <NA>  <NA>                  <NA>                     <NA>
+#>   subarea akfin_load_date                   code_name stock
+#> 1    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
+#> 2    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
+#> 3    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
+#> 4    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
+#> 5    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
+#> 6    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
+#> 7    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
+#> 8    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
+#> 9    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
 ```
 
 You can also use the [afscdata
@@ -192,6 +246,13 @@ q_lls_rpn(year=2023, species=20510, area='ai', by='fmpsubarea',
 #> #   rpn_var <dbl>, rpw <dbl>, rpw_var <dbl>, last_modified_date <dttm>,
 #> #   akfin_load_date <dttm>
 ```
+
+## APEX
+
+AKFIN APEX (Application Express) reports are available
+[here](https://reports.psmfc.org/akfin/f?p=501:1000::::::). Log in with
+your oracle credentials by clicking public then login in the upper right
+to see confidential reports. ![](img/apex.png)
 
 ## Web servies
 
@@ -273,7 +334,7 @@ fromJSON(content(
 ``` r
 end<-Sys.time()
 end-start
-#> Time difference of 22.54827 secs
+#> Time difference of 23.49117 secs
 ```
 
 I wrote the
@@ -290,32 +351,36 @@ token<-create_token("Callahan_token.txt")
 #pull GOA sablefish biomass 2015-2023
 get_gap_biomass(species_code=20510, survey_definition_id = 47, area_id = 99903, start_year=2015, end_year = 2023)
 #>   survey_definition_id area_id species_code year n_haul n_weight n_count
-#> 1                   47   99903        20510 2015    771      292     292
-#> 2                   47   99903        20510 2017    536      300     300
-#> 3                   47   99903        20510 2019    541      333     333
-#> 4                   47   99903        20510 2021    529      305     305
-#> 5                   47   99903        20510 2023    526      234     234
+#> 1                   47   99903        20510 2015    767      290     290
+#> 2                   47   99903        20510 2017    535      299     299
+#> 3                   47   99903        20510 2019    537      333     333
+#> 4                   47   99903        20510 2021    526      302     302
+#> 5                   47   99903        20510 2023    523      234     234
 #>   n_length cpue_kgkm2_mean cpue_kgkm2_var cpue_nokm2_mean cpue_nokm2_var
-#> 1      291        497.5280       1876.252        295.0174       1297.516
-#> 2      300        467.8093       5320.431        452.0873       7735.663
-#> 3      332        858.3070       4109.390        666.3847       3152.368
-#> 4      305       1054.0152      10354.030        798.9722       6623.009
-#> 5      233        634.0286       3541.078        404.6120       1241.430
+#> 1      289        500.5296       1914.260        294.6634       1312.217
+#> 2      299        470.4378       5313.223        454.5731       7782.235
+#> 3      332        867.9807       4213.603        673.4023       3229.017
+#> 4      302       1065.4370      10629.448        806.6154       6810.373
+#> 5      233        638.4060       3633.389        408.0715       1271.143
 #>   biomass_mt biomass_var population_count population_var      akfin_load_date
-#> 1   159212.2   192135969         94407467   1.328710e+14 2024-10-24T16:20:42Z
-#> 2   144279.9   506081889        139430982   7.358199e+14 2024-10-24T16:20:42Z
-#> 3   264715.7   390887102        205523741   2.998548e+14 2024-10-24T16:20:42Z
-#> 4   325075.2   984880265        246415859   6.299837e+14 2024-10-24T16:20:42Z
-#> 5   195544.6   336828990        124788847   1.180854e+14 2024-10-24T16:20:42Z
+#> 1   157921.4   190556278         92968842   1.306255e+14 2025-07-15T00:00:00Z
+#> 2   142977.0   490778967        138155343   7.188400e+14 2025-07-15T00:00:00Z
+#> 3   263799.5   389207740        204662618   2.982622e+14 2025-07-15T00:00:00Z
+#> 4   323811.1   981835196        245149196   6.290697e+14 2025-07-15T00:00:00Z
+#> 5   194026.4   335613822        124022433   1.174147e+14 2025-07-15T00:00:00Z
 ```
 
-## APEX
+## AKFIN Answers
 
-AKFIN has public APEX reports
-[here](https://reports.psmfc.org/akfin/f?p=501:1000::::::).
+[AKFIN
+Answers](https://akfinbi.psmfc.org/bi-security-login/login.jsp?msi=false&redirect=L2FuYWx5dGljcy9zYXcuZGxsP2JpZWVob21lJnN0YXJ0UGFnZT0xJmhhc2g9Y0MtckpJLUVnQUhzUlBtMDM5TWZBamZxdkctT0oydlhlc0VON0h2azlyeFFOSlZRZkNMTVlHYWRNdXRTcmF1Wg==)
+is an Oracle BI tool that allows users to browse, filter, and download
+data using a point and click web interface. Answers does not require any
+coding and it can be accessed without a VPN connection. Answers is not
+the best method for reproducible science because users must select their
+filters and download their data as a csv each use.
 
-## Shiny
-
-AKFIN has a shiny server with some shiny apps
-[here](https://shinyfin.psmfc.org/). You are welcome to add your own
-apps too!
+<figure>
+<img src="img/crab%20dashboard.png" alt="example report on Answers" />
+<figcaption aria-hidden="true">example report on Answers</figcaption>
+</figure>
