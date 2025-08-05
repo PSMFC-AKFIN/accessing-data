@@ -33,13 +33,12 @@ Users can connect to the database and pull data in SQL developer, R, or
 python while on PSMFC or NOAA networks of VPN. SQL developer is handy
 for designing SQL queries and examining table structure. Once a query is
 perfected, it can be reused in R, reproducibly pulling the latest data
-each time. The [dbplyr](https://dbplyr.tidyverse.org/) R package also
-offers a tidyverse wrapper for SQL queries, which many users find
-helpful.
+each time.
+
+### Configuration
 
 Before connecting, users must complete the following steps. An AFSC
-helpdesk ticket might expedite this process and will be required without
-admin privileges.
+helpdesk ticket might expedite this process.
 
 - install oracle Database 19c Client (19.3) for Microsoft Windows x64
   (64-bit) using the self service portal or it download
@@ -69,6 +68,14 @@ admin privileges.
     passes click OK. If not please note error and contact staff to
     figure out the error
 
+### Connecting through SQL developer
+
+SQL developer is an interface for querying databases. Contact the AFSC
+helpdesk for installation if not already installed. I use SQL developer
+to see what tables are available, examine table structure, run quick
+one-off queries, and develop more complex SQL queries before embedding
+them into R scripts.
+
 <figure>
 <img src="img/sql_developer_new_connection.png"
 alt="The first time you connect you will have to specify some details, but you can save the connection so subsequent logins will only require your password." />
@@ -93,14 +100,17 @@ alt="GAP_PRODUCTS tables in SQL developer" />
 developer</figcaption>
 </figure>
 
-You can also connect using R. If I have a query that I am happy with
-that I know I will need to run repeatedly I will embed it in my R
-script.
+### Connecting through R
 
-Below are some R examples. I use the odbc package to connect here but it
-is also possible to use the RODBC and RJDBC packages. RJDBC is ~3x
-faster than odbc or RODBC. The keyring and getPass packages allows us to
-enter passwords without storing them in code (poor form).
+You can also connect using R. Once a query has been perfected, coding it
+into your scripts can pull it straight into your R environment. The
+[dbplyr](https://dbplyr.tidyverse.org/) R package also offers a
+tidyverse wrapper for SQL queries, which many users find helpful. Below
+are some R examples. I use the odbc package and RJDBC packages to
+connect here but it is also possible to use RODBC or ROracle. RJDBC is
+~3x faster than odbc or RODBC. ROracle works for Mac users. The keyring
+and getPass packages allows us to enter passwords without storing them
+in code (poor form).
 
 ``` r
 library(tidyverse)
@@ -119,103 +129,55 @@ con <- dbConnect(odbc::odbc(), "akfin", UID=key_list("akfin_oracle_db")$username
 # con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
 
 # query db for survey data
-dbFetch(dbSendQuery(con, "select * from gap_products.akfin_biomass_v
-                                  where rownum<10")) %>%
+dbFetch(dbSendQuery(con, "select year, survey_definition_id, area_id, species_code, biomass_mt from gap_products.akfin_biomass_v
+                                  where rownum<5")) %>%
   rename_with(tolower)
-#>                            survey_name survey_definition_id year area_id
-#> 1 Aleutian Islands Bottom Trawl Survey                   52 1991     823
-#> 2 Aleutian Islands Bottom Trawl Survey                   52 1991     824
-#> 3 Aleutian Islands Bottom Trawl Survey                   52 1991     991
-#> 4 Aleutian Islands Bottom Trawl Survey                   52 1991     992
-#> 5 Aleutian Islands Bottom Trawl Survey                   52 1991     993
-#> 6 Aleutian Islands Bottom Trawl Survey                   52 1991     994
-#> 7 Aleutian Islands Bottom Trawl Survey                   52 1991    3491
-#> 8 Aleutian Islands Bottom Trawl Survey                   52 1991    3492
-#> 9 Aleutian Islands Bottom Trawl Survey                   52 1991    3493
-#>   species_code n_haul n_weight n_count n_length cpue_kgkm2_mean cpue_kgkm2_var
-#> 1        20614      2        0       0        0        0.000000       0.000000
-#> 2        20614      4        0       0        0        0.000000       0.000000
-#> 3        20614     66        0       0        0        0.000000       0.000000
-#> 4        20614    160        0       0        0        0.000000       0.000000
-#> 5        20614     60        0       0        0        0.000000       0.000000
-#> 6        20614     45        1       1        0        0.135175       0.018272
-#> 7        20614     16        0       0        0        0.000000       0.000000
-#> 8        20614     44        0       0        0        0.000000       0.000000
-#> 9        20614     20        0       0        0        0.000000       0.000000
-#>   cpue_nokm2_mean cpue_nokm2_var biomass_mt biomass_var population_count
-#> 1         0.00000        0.00000   0.000000    0.000000                0
-#> 2         0.00000        0.00000   0.000000    0.000000                0
-#> 3         0.00000        0.00000   0.000000    0.000000                0
-#> 4         0.00000        0.00000   0.000000    0.000000                0
-#> 5         0.00000        0.00000   0.000000    0.000000                0
-#> 6         3.47878       12.10191   1.889661    3.570818            48631
-#> 7         0.00000        0.00000   0.000000    0.000000                0
-#> 8         0.00000        0.00000   0.000000    0.000000                0
-#> 9         0.00000        0.00000   0.000000    0.000000                0
-#>   population_var         common_name species_name                area_type
-#> 1              0 deepsea smelt unid. Bathylagidae REGULATORY AREA BY DEPTH
-#> 2              0 deepsea smelt unid. Bathylagidae REGULATORY AREA BY DEPTH
-#> 3              0 deepsea smelt unid. Bathylagidae                    DEPTH
-#> 4              0 deepsea smelt unid. Bathylagidae                    DEPTH
-#> 5              0 deepsea smelt unid. Bathylagidae                    DEPTH
-#> 6     2364971947 deepsea smelt unid. Bathylagidae                    DEPTH
-#> 7              0 deepsea smelt unid. Bathylagidae           INPFC BY DEPTH
-#> 8              0 deepsea smelt unid. Bathylagidae           INPFC BY DEPTH
-#> 9              0 deepsea smelt unid. Bathylagidae           INPFC BY DEPTH
-#>   survey_code depth_min_m depth_max_m           area_name
-#> 1          AI         201         300 Southern Bering Sea
-#> 2          AI         301         500 Southern Bering Sea
-#> 3          AI           1         100                 All
-#> 4          AI         101         200                 All
-#> 5          AI         201         300                 All
-#> 6          AI         301         500                 All
-#> 7          AI           1         100   Central Aleutians
-#> 8          AI         101         200   Central Aleutians
-#> 9          AI         201         300   Central Aleutians
-#>                  area_description area_km2 design_year region regulatory_area
-#> 1      S BERING SEA 201 m - 300 m       NA        1991   <NA>            <NA>
-#> 2      S BERING SEA 301 m - 500 m       NA        1991   <NA>            <NA>
-#> 3          All areas 1-100 meters       NA        1991   <NA>            <NA>
-#> 4        All areas 101-200 meters       NA        1991   <NA>            <NA>
-#> 5        All areas 201-300 meters       NA        1991   <NA>            <NA>
-#> 6        All areas 301-500 meters       NA        1991   <NA>            <NA>
-#> 7   Central Aleutians 1 m - 100 m       NA        1991   <NA>            <NA>
-#> 8 Central Aleutians 101 m - 200 m       NA        1991   <NA>            <NA>
-#> 9 Central Aleutians 201 m - 300 m       NA        1991   <NA>            <NA>
-#>   inpfc_by_depth inpfc depth nmfs_statistical_area regulatory_area_by_depth
-#> 1           <NA>  <NA>  <NA>                  <NA>                     <NA>
-#> 2           <NA>  <NA>  <NA>                  <NA>                     <NA>
-#> 3           <NA>  <NA>  <NA>                  <NA>                     <NA>
-#> 4           <NA>  <NA>  <NA>                  <NA>                     <NA>
-#> 5           <NA>  <NA>  <NA>                  <NA>                     <NA>
-#> 6           <NA>  <NA>  <NA>                  <NA>                     <NA>
-#> 7           <NA>  <NA>  <NA>                  <NA>                     <NA>
-#> 8           <NA>  <NA>  <NA>                  <NA>                     <NA>
-#> 9           <NA>  <NA>  <NA>                  <NA>                     <NA>
-#>   subarea akfin_load_date                   code_name stock
-#> 1    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
-#> 2    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
-#> 3    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
-#> 4    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
-#> 5    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
-#> 6    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
-#> 7    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
-#> 8    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
-#> 9    <NA>      2025-07-15 20614 - deepsea smelt unid.    NA
+#>   year survey_definition_id area_id species_code biomass_mt
+#> 1 1991                   52     823        20614          0
+#> 2 1991                   52     824        20614          0
+#> 3 1991                   52     991        20614          0
+#> 4 1991                   52     992        20614          0
+```
+
+``` r
+# RJDBC
+library(RJDBC)
+#> Loading required package: DBI
+#> Loading required package: rJava
+```
+
+``` r
+
+# specify jdbc driver location.
+jdbcDriver <- JDBC(driverClass="oracle.jdbc.OracleDriver", classPath="java/ojdbc8.jar")
+
+con_j <- dbConnect(jdbcDriver, 
+                   "jdbc:oracle:thin:@//tiger:2045/akfin.psmfc.org", 
+                   key_list("akfin_oracle_db")$username, 
+                   keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
+
+dbGetQuery(con_j, paste0("select year, survey_definition_id, area_id, species_code, biomass_mt  from gap_products.akfin_biomass_v
+                                  where rownum<5"))
+#>   YEAR SURVEY_DEFINITION_ID AREA_ID SPECIES_CODE BIOMASS_MT
+#> 1 1991                   52     823        20614          0
+#> 2 1991                   52     824        20614          0
+#> 3 1991                   52     991        20614          0
+#> 4 1991                   52     992        20614          0
 ```
 
 You can also use the [afscdata
 package](https://github.com/afsc-assessments/afscdata). This was
 developed in 2023 and is designed to be flexible enough to pull data
 needed for assessments for each stock. This package uses the dbplyer
-package to translate dplyr filters into sql queries.
+package.
 
 ``` r
 #remotes::install_github("afsc-assessments/afscdata")
 library(afscdata)
 
 q_lls_rpn(year=2023, species=20510, area='ai', by='fmpsubarea', 
-                      use_historical=FALSE, db=con, print_sql=FALSE, save=FALSE)
+                      use_historical=FALSE, db=con, print_sql=FALSE, save=FALSE) %>%
+  dplyr::select(year, council_management_area, species_code,rpn)
 #> sablefish rpns:
 #> 
 #>             -are corrected for sperm whale depredation and area summaries 
@@ -227,24 +189,20 @@ q_lls_rpn(year=2023, species=20510, area='ai', by='fmpsubarea',
 #>             -assume fixed rpn/rpw data in the ai (1990-1995) and bs (1990-1996) when no bs/ai surveys occurred
 #> 
 #>             -assume fixed ak-wide rpn/rpws from 1979-1994 for the historical Japanese survey
-#> # A tibble: 34 × 14
-#>     year country      council_management_a…¹ council_management_a…² species_code
-#>    <dbl> <chr>                         <dbl> <chr>                         <dbl>
-#>  1  1990 United Stat…                      1 Aleutians                     20510
-#>  2  1991 United Stat…                      1 Aleutians                     20510
-#>  3  1992 United Stat…                      1 Aleutians                     20510
-#>  4  1993 United Stat…                      1 Aleutians                     20510
-#>  5  1994 United Stat…                      1 Aleutians                     20510
-#>  6  1995 United Stat…                      1 Aleutians                     20510
-#>  7  1996 United Stat…                      1 Aleutians                     20510
-#>  8  1997 United Stat…                      1 Aleutians                     20510
-#>  9  1998 United Stat…                      1 Aleutians                     20510
-#> 10  1999 United Stat…                      1 Aleutians                     20510
+#> # A tibble: 34 × 4
+#>     year council_management_area species_code     rpn
+#>    <dbl> <chr>                          <dbl>   <dbl>
+#>  1  1990 Aleutians                      20510  77131.
+#>  2  1991 Aleutians                      20510  74442.
+#>  3  1992 Aleutians                      20510  50952.
+#>  4  1993 Aleutians                      20510  78040.
+#>  5  1994 Aleutians                      20510  56139.
+#>  6  1995 Aleutians                      20510  57474.
+#>  7  1996 Aleutians                      20510  57517 
+#>  8  1997 Aleutians                      20510  55385 
+#>  9  1998 Aleutians                      20510  98842.
+#> 10  1999 Aleutians                      20510 108722.
 #> # ℹ 24 more rows
-#> # ℹ abbreviated names: ¹​council_management_area_id, ²​council_management_area
-#> # ℹ 9 more variables: species <chr>, cpue <dbl>, cpue_var <dbl>, rpn <dbl>,
-#> #   rpn_var <dbl>, rpw <dbl>, rpw_var <dbl>, last_modified_date <dttm>,
-#> #   akfin_load_date <dttm>
 ```
 
 ## APEX
@@ -265,9 +223,11 @@ require NOAA network or VPN.
 Authenticated web services require a “secret string”, which is converted
 into an Oracle authentication token and included in the web service
 request. Reach out to AKFIN for a secret string if you do not already
-have one.
+have one. It will be in the format of client_id:password
+(e.g. abcd..:1234..), and can be saved as a text file or added to your
+keyring.
 
-Example 1: SST in the Bering Sea:
+Example 1: Public api-SST in the Bering Sea:
 
 ``` r
 library(httr)
@@ -293,7 +253,7 @@ jsonlite::fromJSON(httr::content(
 #> 4    0.87 Southeastern Bering Sea 2023-03-14T12:00:00Z 2023    073
 ```
 
-Example 2: Chinook PSC in the Bering Sea
+Example 2: Confidential data-Chinook PSC in the Bering Sea.
 
 ``` r
 # Set secret string using keyring. You will only need to do this once.
@@ -334,7 +294,7 @@ fromJSON(content(
 ``` r
 end<-Sys.time()
 end-start
-#> Time difference of 23.49117 secs
+#> Time difference of 22.22719 secs
 ```
 
 I wrote the
@@ -349,25 +309,14 @@ library(akfingapdata)
 token<-create_token("Callahan_token.txt")
 
 #pull GOA sablefish biomass 2015-2023
-get_gap_biomass(species_code=20510, survey_definition_id = 47, area_id = 99903, start_year=2015, end_year = 2023)
-#>   survey_definition_id area_id species_code year n_haul n_weight n_count
-#> 1                   47   99903        20510 2015    767      290     290
-#> 2                   47   99903        20510 2017    535      299     299
-#> 3                   47   99903        20510 2019    537      333     333
-#> 4                   47   99903        20510 2021    526      302     302
-#> 5                   47   99903        20510 2023    523      234     234
-#>   n_length cpue_kgkm2_mean cpue_kgkm2_var cpue_nokm2_mean cpue_nokm2_var
-#> 1      289        500.5296       1914.260        294.6634       1312.217
-#> 2      299        470.4378       5313.223        454.5731       7782.235
-#> 3      332        867.9807       4213.603        673.4023       3229.017
-#> 4      302       1065.4370      10629.448        806.6154       6810.373
-#> 5      233        638.4060       3633.389        408.0715       1271.143
-#>   biomass_mt biomass_var population_count population_var      akfin_load_date
-#> 1   157921.4   190556278         92968842   1.306255e+14 2025-07-15T00:00:00Z
-#> 2   142977.0   490778967        138155343   7.188400e+14 2025-07-15T00:00:00Z
-#> 3   263799.5   389207740        204662618   2.982622e+14 2025-07-15T00:00:00Z
-#> 4   323811.1   981835196        245149196   6.290697e+14 2025-07-15T00:00:00Z
-#> 5   194026.4   335613822        124022433   1.174147e+14 2025-07-15T00:00:00Z
+get_gap_biomass(species_code=20510, survey_definition_id = 47, area_id = 99903, start_year=2015, end_year = 2023) %>%
+  dplyr::select(year, survey_definition_id, area_id, species_code, biomass_mt)
+#>   year survey_definition_id area_id species_code biomass_mt
+#> 1 2015                   47   99903        20510   157921.4
+#> 2 2017                   47   99903        20510   142977.0
+#> 3 2019                   47   99903        20510   263799.5
+#> 4 2021                   47   99903        20510   323811.1
+#> 5 2023                   47   99903        20510   194026.4
 ```
 
 ## AKFIN Answers

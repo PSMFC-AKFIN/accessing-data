@@ -35,10 +35,10 @@ The credentials for a direct database connection and Oracle APEX are the same bu
 ## Direct database connection
 Users can connect to the database and pull data in SQL developer, R, or python while on PSMFC or NOAA networks of VPN. 
 SQL developer is handy for designing SQL queries and examining table structure. Once a query is perfected, it can be reused in R, reproducibly pulling the latest data each time.
-The [dbplyr](https://dbplyr.tidyverse.org/) R package also offers a tidyverse wrapper for SQL queries, which many users find helpful. 
 
+### Configuration
 
-Before connecting, users must complete the following steps. An AFSC helpdesk ticket might expedite this process and will be required without admin privileges.
+Before connecting, users must complete the following steps. An AFSC helpdesk ticket might expedite this process.
 
 * install oracle Database 19c Client (19.3) for Microsoft Windows x64 (64-bit) using the self service portal or it download [here](https://www.oracle.com/database/technologies/oracle19c-windows-downloads.html)
 * Update tnsnames.ora file
@@ -50,6 +50,10 @@ Before connecting, users must complete the following steps. An AFSC helpdesk tic
 ![](img/systemdsn.png)
   + The next popup will vary some based on the services you have installed already. Look for the version titled "Oracle in OracleClient19Home1". Do not use a version with instant client in the title. 
   + In the config window enter Data Source Name – AKFIN, PacFIN or RecFIN based on service you are accessing. Description – up to you, but something to help you identify what it is. TNS server name is either akfin for Alaska data, or PacFIN for west coast commercial or recreational data (PacFIN and/or RecFIN). I leave the user ID blank. You can use scripts in R to automatically load your user ID and password. Click test and enter your user ID and password. If it passes click OK. If not please note error and contact staff to figure out the error
+  
+### Connecting through SQL developer  
+SQL developer is an interface for querying databases. Contact the AFSC helpdesk for installation if not already installed.
+I use SQL developer to see what tables are available, examine table structure, run quick one-off queries, and develop more complex SQL queries before embedding them into R scripts.
 
 ![The first time you connect you will have to specify some details, but you can save the connection so subsequent logins will only require your password.](img/sql_developer_new_connection.png)
 
@@ -59,9 +63,9 @@ Before connecting, users must complete the following steps. An AFSC helpdesk tic
 
 ![GAP_PRODUCTS tables in SQL developer](img/gap_sql_dev.png)
 
-You can also connect using R. If I have a query that I am happy with that I know I will need to run repeatedly I will embed it in my R script. 
+### Connecting through R
 
-Below are some R examples. I use the odbc package to connect here but it is also possible to use the RODBC and RJDBC packages. RJDBC is ~3x faster than odbc or RODBC. The keyring and getPass packages allows us to enter passwords without storing them in code (poor form).
+You can also connect using R. Once a query has been perfected, coding it into your scripts can pull it straight into your R environment. The [dbplyr](https://dbplyr.tidyverse.org/) R package also offers a tidyverse wrapper for SQL queries, which many users find helpful. Below are some R examples. I use the odbc package and RJDBC packages to connect here but it is also possible to use RODBC or ROracle. RJDBC is ~3x faster than odbc or RODBC. ROracle works for Mac users. The keyring and getPass packages allows us to enter passwords without storing them in code (poor form).
 
 ```{r message=FALSE}
 library(tidyverse)
@@ -76,19 +80,36 @@ con <- dbConnect(odbc::odbc(), "akfin", UID=key_list("akfin_oracle_db")$username
 # con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
 
 # query db for survey data
-dbFetch(dbSendQuery(con, "select * from gap_products.akfin_biomass_v
-                                  where rownum<10")) %>%
+dbFetch(dbSendQuery(con, "select year, survey_definition_id, area_id, species_code, biomass_mt from gap_products.akfin_biomass_v
+                                  where rownum<5")) %>%
   rename_with(tolower)
 ```
 
-You can also use the [afscdata package](https://github.com/afsc-assessments/afscdata). This was developed in 2023 and is designed to be flexible enough to pull data needed for assessments for each stock. This package uses the dbplyer package to translate dplyr filters into sql queries.
+```{r}
+# RJDBC
+library(RJDBC)
+
+# specify jdbc driver location.
+jdbcDriver <- JDBC(driverClass="oracle.jdbc.OracleDriver", classPath="java/ojdbc8.jar")
+
+con_j <- dbConnect(jdbcDriver, 
+                   "jdbc:oracle:thin:@//tiger:2045/akfin.psmfc.org", 
+                   key_list("akfin_oracle_db")$username, 
+                   keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
+
+dbGetQuery(con_j, paste0("select year, survey_definition_id, area_id, species_code, biomass_mt  from gap_products.akfin_biomass_v
+                                  where rownum<5"))
+```
+
+You can also use the [afscdata package](https://github.com/afsc-assessments/afscdata). This was developed in 2023 and is designed to be flexible enough to pull data needed for assessments for each stock. This package uses the dbplyer package.
 
 ```{r}
 #remotes::install_github("afsc-assessments/afscdata")
 library(afscdata)
 
 q_lls_rpn(year=2023, species=20510, area='ai', by='fmpsubarea', 
-                      use_historical=FALSE, db=con, print_sql=FALSE, save=FALSE)
+                      use_historical=FALSE, db=con, print_sql=FALSE, save=FALSE) %>%
+  dplyr::select(year, council_management_area, species_code,rpn)
 ```
 
 ## APEX
@@ -98,9 +119,9 @@ AKFIN APEX (Application Express) reports are available [here](https://reports.ps
 ## Web servies
 AKFIN can create web services (apis) to distribute data from a url. Web services do require a small amount of initial set up by AKFIN staff. They can be public or require authentication. Like a direct connection, a web service pull can be embedded in code and automated. They do not require NOAA network or VPN.
 
-Authenticated web services require a "secret string", which is converted into an Oracle authentication token and included in the web service request. Reach out to AKFIN for a secret string if you do not already have one.
+Authenticated web services require a "secret string", which is converted into an Oracle authentication token and included in the web service request. Reach out to AKFIN for a secret string if you do not already have one. It will be in the format of client_id:password (e.g. abcd..:1234..), and can be saved as a text file or added to your keyring.
 
-Example 1: SST in the Bering Sea:
+Example 1: Public api-SST in the Bering Sea:
 ```{r}
 library(httr)
 library(jsonlite)
@@ -113,7 +134,7 @@ jsonlite::fromJSON(httr::content(
 
 ```
 
-Example 2: Chinook PSC in the Bering Sea
+Example 2: Confidential data-Chinook PSC in the Bering Sea. 
 ```{r}
 # Set secret string using keyring. You will only need to do this once.
 #keyring::key_set(service="akfin_secret")
@@ -156,7 +177,8 @@ library(akfingapdata)
 token<-create_token("Callahan_token.txt")
 
 #pull GOA sablefish biomass 2015-2023
-get_gap_biomass(species_code=20510, survey_definition_id = 47, area_id = 99903, start_year=2015, end_year = 2023)
+get_gap_biomass(species_code=20510, survey_definition_id = 47, area_id = 99903, start_year=2015, end_year = 2023) %>%
+  dplyr::select(year, survey_definition_id, area_id, species_code, biomass_mt)
 
 ```
 
